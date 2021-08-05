@@ -13,11 +13,12 @@ BLACKLIST = list()
 
 ACTIVE = True
 
-LOCK = threading.Lock
+LOCK = threading.Lock()
 
 arg_parser = ArgumentParser()
 
 arg_parser.add_argument("-c", "--config", default="config.json")
+
 
 def add_channel(irc: ssl.SSLSocket, channel: str):
     """Add a channel to the temporary list
@@ -31,6 +32,7 @@ def add_channel(irc: ssl.SSLSocket, channel: str):
         CHANNELS.append(channel)
         send(irc, f'JOIN #{channel}')
 
+
 def remove_channel(irc: ssl.SSLSocket, channel: str):
     """Remove a channel from the temporary list
 
@@ -43,12 +45,14 @@ def remove_channel(irc: ssl.SSLSocket, channel: str):
         send(irc, f'PART #{channel}')
         CHANNELS.pop(CHANNELS.index(channel))
 
+
 def toggle_active():
     """Toggle the global active flag
     """
     with LOCK:
         global ACTIVE
         ACTIVE = not ACTIVE
+
 
 def send(irc: ssl.SSLSocket, message: str):
     """Send a message to the given socket.
@@ -102,6 +106,7 @@ def send_chat(irc: ssl.SSLSocket, message: str, channel: str):
     """
     send(irc, f'PRIVMSG #{channel} :{message}')
 
+
 def parse_chat(irc: ssl.SSLSocket, raw_message: str):
     """Parses a chat message and calls according action
 
@@ -122,30 +127,31 @@ def parse_chat(irc: ssl.SSLSocket, raw_message: str):
 
     if message.startswith('!'):
         message_components = message.split()
-        command, *args = message_components[0][1:].split()
-
+        command = message_components[0][1:]
+        args = message_components[1:]
         if command == 'dice':
             random_number = random.randint(1, 6)
             send_chat(irc, f'Hi {user}, deine Zahl: {random_number}', channel)
         elif (command == 'togglemulti') and (user in CHANNELS):
             toggle_active()
             message = "I'm active now :)" if ACTIVE else "I'm going to sleep..."
-            serve_channels(irc,("", ""), message, channels=CHANNELS)
+            serve_channels(irc, ("", ""), message, channels=CHANNELS)
 
         elif (command == 'addmulti') and (user in CHANNELS):
-            if len(args) > 0:
-                new_channel = args[0]
-                new_channel(irc, new_channel)
-                send_chat(irc, f"You have been added to the multi chat {new_channel}. !leavemulti to leave.", new_channel)
+            new_channel = args[0]
+            if (len(args) > 0) and (new_channel not in CHANNELS):
+                add_channel(irc, new_channel)
+                send_chat(
+                    irc, f"You have been added to the multi chat {new_channel}. !leavemulti to leave.", new_channel)
 
         elif (command == 'leavemulti') and (user in CHANNELS) and (user == channel):
             send_chat(irc, f"Bye, bye {user}", channel)
             remove_channel(irc, channel)
 
-
     elif ACTIVE:
         origin = (user, channel)
         serve_channels(irc, origin, message, CHANNELS)
+
 
 def main_loop(irc: ssl.SSLSocket):
     """Main loop running in a thread
@@ -168,6 +174,7 @@ def main_loop(irc: ssl.SSLSocket):
                     parse_chat(irc, line)
                 elif command == 'NOTICE':
                     print("NOTICE: {}".format(line[line.find(":", 1, -1):]))
+
 
 if __name__ == '__main__':
     args = arg_parser.parse_args()
@@ -196,7 +203,8 @@ if __name__ == '__main__':
     for ch in channels:
         send(irc, f'JOIN #{ch}')
 
-    bot_thread = threading.Thread(target=main_loop, args=(irc,), name="bot_loop", daemon=True)
+    bot_thread = threading.Thread(
+        target=main_loop, args=(irc,), name="bot_loop", daemon=True)
     bot_thread.start()
 
     try:
