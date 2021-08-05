@@ -1,0 +1,10 @@
+{
+    "bot_username": "<USERNAME>",
+    "oauth_token": "<TOKEN>",
+    "channels":[
+        "<CHANNEL1>",
+        "<CHANNEL2>"
+    ],
+    "whitelist":[],
+    "blacklist":[]
+}
