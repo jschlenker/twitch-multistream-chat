@@ -11,9 +11,15 @@ CHANNELS = list()
 WHITELIST = list()
 BLACKLIST = list()
 
+ACTIVE = True
+
 arg_parser = ArgumentParser()
 
 arg_parser.add_argument("-c", "--config", default="config.json")
+
+def toggle_active():
+    global ACTIVE
+    ACTIVE = not ACTIVE
 
 def send(irc: ssl.SSLSocket, message: str):
     """Send a message to the given socket.
@@ -50,8 +56,11 @@ def serve_channels(irc: ssl.SSLSocket, origin: Tuple[str, str], message: str, ch
     for ch in channels:
         if src_ch == ch:
             continue
-        # print(f"Sende {message} nach {ch}")
-        send_chat(irc, f"{user}: {message}", ch)
+
+        if user:
+            send_chat(irc, f"{user}: {message}", ch)
+        else:
+            send_chat(irc, f"{message}", ch)
 
 
 def send_chat(irc: ssl.SSLSocket, message: str, channel: str):
@@ -63,7 +72,6 @@ def send_chat(irc: ssl.SSLSocket, message: str, channel: str):
         channel (str): channel to send to
     """
     send(irc, f'PRIVMSG #{channel} :{message}')
-
 
 def parse_chat(irc: ssl.SSLSocket, raw_message: str):
     """Parses a chat message and calls according action
@@ -90,7 +98,12 @@ def parse_chat(irc: ssl.SSLSocket, raw_message: str):
         if command == 'dice':
             random_number = random.randint(1, 6)
             send_chat(irc, f'Hi {user}, deine Zahl: {random_number}', channel[1:])
-    else:
+        elif (command == 'togglemulti') and (user in CHANNELS):
+            toggle_active()
+            message = "I'm active now :)" if ACTIVE else "I'm going to sleep..."
+            serve_channels(irc,("", ""), message, channels=CHANNELS)
+
+    elif ACTIVE:
         origin = (user, channel[1:])
         serve_channels(irc, origin, message, CHANNELS)
 
