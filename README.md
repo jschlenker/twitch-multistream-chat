@@ -44,3 +44,8 @@ If you have multiple configs for different occasions, you can also specify the l
 python bot.py -c PATH/TO/MY/CONFIG.json
 ```
 
+## Commands for streamer
+
+- `!togglemulti` toggles the bot.
+- `!addmulti <channel>` enables any current member of the multi stream to add an additional member
+- `!leavemulti` enables a member to remove himself from the multi stream
